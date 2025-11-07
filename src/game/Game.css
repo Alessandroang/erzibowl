@@ -283,3 +283,42 @@
   image-rendering: pixelated;
   will-change: transform;
 }
+
+/* Fade on background change */
+@keyframes bgFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Tap particles and Perfect bonus */
+.particle {
+  position: absolute;
+  z-index: 9;
+  pointer-events: none;
+  will-change: transform, opacity;
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,0.25));
+}
+.particle span {
+  display: inline-block;
+  font-size: 16px;
+  line-height: 16px;
+}
+@keyframes floatUp {
+  0% { transform: translate3d(0,0,0) scale(1); }
+  100% { transform: translate3d(0,-35px,0) scale(1.1); }
+}
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.particle-anim {
+  animation: floatUp 500ms ease-out, fadeOut 500ms linear;
+}
+.particle.flame span { color: #ff6b3d; }
+.particle.spark span { color: #ffd93d; }
+.particle.note span { color: #9ad0f5; }
+.particle.perfect {
+  font-weight: 700;
+  color: #4ade80;
+}
+.particle.perfect span { font-size: 14px; }

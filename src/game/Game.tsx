@@ -23,6 +23,7 @@ import PipeSprite from './sprites/Pipe'
 
 type Obstacle = { id: number; x: number; gapY: number }
 type Cloud = { id: number; x: number; y: number; scale: number }
+type Particle = { id: number; type: 'flame' | 'spark' | 'note' | 'perfect'; x: number; y: number }
 
 export function Game() {
   const [bgOffset, setBgOffset] = useState(0)
@@ -65,6 +66,8 @@ export function Game() {
     return (allowed as readonly string[]).includes(vv || '') ? (vv as typeof allowed[number]) : 'charizard'
   })
   const rootRef = useRef<HTMLDivElement | null>(null)
+  const particleIdRef = useRef(0)
+  const [particles, setParticles] = useState<Particle[]>([])
   const [clouds, setClouds] = useState<Cloud[]>(() => {
     const arr: Cloud[] = []
     for (let i = 0; i < CLOUD_COUNT; i++) {
@@ -91,7 +94,25 @@ export function Game() {
     if (!isRunning || isGameOver) return
     setBirdVY(-settings.jumpImpulse)
     setFlapKey((k) => k + 1)
+    // tap particles by character
+    const pType: Particle['type'] = character === 'charizard' ? 'flame' : character === 'pikachu' ? 'spark' : 'note'
+    spawnParticles(pType, BIRD_X, birdY - BIRD_HEIGHT / 2)
     playJump()
+  }
+
+  function spawnParticles(type: Particle['type'], x: number, y: number) {
+    const count = type === 'perfect' ? 1 : 4
+    const created: Particle[] = []
+    for (let i = 0; i < count; i++) {
+      const id = ++particleIdRef.current
+      const ox = (Math.random() - 0.5) * 8
+      const oy = (Math.random() - 0.5) * 6
+      created.push({ id, type, x: x + ox, y: y + oy })
+    }
+    setParticles((prev) => [...prev, ...created])
+    setTimeout(() => {
+      setParticles((prev) => prev.filter((p) => !created.some((c) => c.id === p.id)))
+    }, 600)
   }
 
   useEffect(() => {
@@ -173,8 +194,14 @@ export function Game() {
       const nextObs = obstacles.find((o) => o.id === nextScoreId)
       if (nextObs && nextObs.x + PIPE_WIDTH < BIRD_X) {
         setNextScoreId((id) => (id + 1) % obstacles.length)
+        const centerY = nextObs.gapY + effective.gapHeight / 2
+        const tolerance = 6
+        const perfect = Math.abs(birdY - centerY) <= tolerance
+        if (perfect) {
+          spawnParticles('perfect', BIRD_X, birdY - BIRD_HEIGHT / 2)
+        }
         playScore()
-        return s + 1
+        return s + 1 + (perfect ? 1 : 0)
       }
       return s
     })
@@ -275,7 +302,7 @@ export function Game() {
         }
         const idx = (baseIdxMap[character] + Math.floor(score / 11)) % 3
         const bgVariant: 'day' | 'sunset' | 'night' = variantNames[idx]
-        return <Background key={bgVariant} variant={bgVariant} />
+        return <Background key={bgVariant} variant={bgVariant} style={{ animation: 'bgFade 300ms ease-in' }} />
       })()}
 
       {clouds.map((c) => (
@@ -320,6 +347,13 @@ export function Game() {
           />
         )
       })()}
+
+      {/* Particles */}
+      {particles.map((p) => (
+        <div key={p.id} className={`particle ${p.type} particle-anim`} style={{ transform: `translate3d(${p.x}px, ${p.y}px, 0)` }}>
+          <span>{p.type === 'flame' ? '🔥' : p.type === 'spark' ? '⚡' : p.type === 'note' ? '♪' : 'Perfect!'}</span>
+        </div>
+      ))}
 
       <div className="hud">Score: {score} · Best: {bestScore}</div>
 
